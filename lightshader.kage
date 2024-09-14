@@ -1,0 +1,13 @@
+//kage:unit pixels
+
+package main
+
+var LightPos vec2
+var Size vec2
+
+func Fragment(dstPos vec4, scrPos vec2, color vec4) vec4 {
+    lightLevel := max(50-distance(dstPos.xy, LightPos), 0)/50
+    return vec4(vec3(0), 1-lightLevel)
+}
+
+//    return vec4(vec3(max(50-distance(dstPos.xy, LightPos), 0)), 1)
