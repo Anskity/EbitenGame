@@ -1,15 +1,15 @@
 package main
 
 import (
-	"gogame/cavescene"
 	"gogame/game"
+	"gogame/scenes/cavescene"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
-	ebiten.SetWindowSize(640, 480)
+	ebiten.SetWindowSize(1280/2, 720/2)
 	ebiten.SetWindowTitle("Dark Cave")
 
 	scene := cavescene.NewCaveScene()

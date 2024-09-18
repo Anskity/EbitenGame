@@ -2,33 +2,36 @@ package player
 
 import (
 	"encoding/binary"
+	"gogame/assert"
 	"gogame/game"
 	"gogame/gamemath"
 	_ "image/png"
-	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-type Player struct {
-	PosX float64
-	PosY float64
-	Spr  *ebiten.Image
-}
+var idleSpr *ebiten.Image
 
-func CreatePlayer() Player {
-	spr, _, err := ebitenutil.NewImageFromFile("frog.png")
+func init() {
+	spr, _, err := ebitenutil.NewImageFromFile("Sprites/frog.png")
+	idleSpr = spr
 
 	if err != nil {
 		panic(err)
 	}
+}
 
+type Player struct {
+	PosX float64
+	PosY float64
+}
+
+func CreatePlayer() Player {
 	return Player{
 		PosX: 0,
 		PosY: 0,
-		Spr:  spr,
 	}
 }
 
@@ -61,20 +64,22 @@ func (player *Player) Move(hsp float64, vsp float64, g *game.Game) {
 }
 
 func pointIsSolid(x float64, y float64, g *game.Game) bool {
-	for _, entity := range *(*g.GetScene()).GetEntities() {
-		if !entity.HasTag("solid") {
-			continue
-		}
-
-		var buf [16]byte
-		binary.BigEndian.PutUint64(buf[0:8], math.Float64bits(x))
-		binary.BigEndian.PutUint64(buf[8:16], math.Float64bits(y))
-		collides, err := entity.SendSignal(0, buf[:])
+	const playerW float64 = 13
+	const playerH float64 = 9
+	for _, entity := range g.GetEntitiesByTag("solid") {
+		buf, err := entity.SendSignal(0, []byte{})
 		if err != nil {
 			panic(err)
 		}
 
-		if len(collides) != 0 {
+		assert.AssertEq[uint](len(buf), 32)
+
+		colX := math.Float64frombits(binary.BigEndian.Uint64(buf[0:8]))
+		colY := math.Float64frombits(binary.BigEndian.Uint64(buf[8:16]))
+		colW := math.Float64frombits(binary.BigEndian.Uint64(buf[16:24]))
+		colH := math.Float64frombits(binary.BigEndian.Uint64(buf[24:32]))
+
+		if gamemath.RectangleInRectangle(colX, colY, colW, colH, x-playerW/2, y-playerH/2, playerW, playerH) {
 			return true
 		}
 	}
@@ -86,18 +91,14 @@ func (player *Player) Update(g *game.Game) {
 	player.movement(g)
 }
 
-func (player *Player) Render(screen *ebiten.Image) {
-	if player.Spr == nil {
-		log.Fatal("Player was expected to have a sprite")
-	}
-
-	sprSize := player.Spr.Bounds().Size()
+func (player *Player) GetImage() (*ebiten.Image, *ebiten.DrawImageOptions) {
+	sprSize := idleSpr.Bounds().Size()
 
 	pos := ebiten.GeoM{}
 	pos.Translate(player.PosX-float64(sprSize.X/2), player.PosY-float64(sprSize.Y)/2)
-	screen.DrawImage(player.Spr, &ebiten.DrawImageOptions{
+	return idleSpr, &ebiten.DrawImageOptions{
 		GeoM: pos,
-	})
+	}
 }
 
 func (player *Player) movement(g *game.Game) {

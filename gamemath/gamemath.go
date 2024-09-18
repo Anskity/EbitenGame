@@ -1,6 +1,7 @@
 package gamemath
 
 import (
+	"encoding/binary"
 	"math"
 )
 
@@ -61,4 +62,39 @@ func Sign[T Number](val T) T {
 	} else {
 		return 0
 	}
+}
+
+func Clamp[T Number](val, minVal, maxVal T) T {
+	if val < minVal {
+		return minVal
+	}
+
+	if val > maxVal {
+		return maxVal
+	}
+
+	return val
+}
+
+func ReadFloat64FromBytes(buf []byte) float64 {
+	if len(buf) != 4 {
+		panic("Buffer should be 4 bytes long")
+	}
+
+	bin := binary.BigEndian.Uint64(buf)
+	return math.Float64frombits(bin)
+}
+
+func FloatsIntoBytes(nums []float64) []byte {
+	buf := []byte{}
+	for _, n := range nums {
+		bin := math.Float64bits(n)
+
+		numBytes := [8]byte{}
+		binary.BigEndian.PutUint64(numBytes[:], bin)
+
+		buf = append(buf, numBytes[:]...)
+	}
+
+	return buf
 }

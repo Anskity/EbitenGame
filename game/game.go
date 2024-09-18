@@ -1,19 +1,23 @@
 package game
 
 import (
+	"strconv"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type Entity interface {
 	Update(*Game)
-	Render(*ebiten.Image)
+	GetImage() (*ebiten.Image, *ebiten.DrawImageOptions)
 	HasTag(string) bool
 	SendSignal(int, []byte) ([]byte, error)
 }
 
 type Scene interface {
-	GetEntities() *[]Entity
 	Render(*ebiten.Image)
+	Update(g *Game)
+	GetEntitiesByTag(string) []Entity
 }
 
 type Game struct {
@@ -32,20 +36,28 @@ func NewGame(scenes []Scene) Game {
 
 func (g *Game) Update() error {
 	g.count += 1
-	for _, entity := range *(*g.currentScene).GetEntities() {
-		entity.Update(g)
-	}
+	(*g.currentScene).Update(g)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	(*g.currentScene).Render(screen)
+
+	txt := ""
+	txt += strconv.FormatFloat(ebiten.ActualFPS(), 'f', -1, 64)
+	txt += " - "
+	txt += strconv.FormatFloat(ebiten.ActualTPS(), 'f', -1, 64)
+	ebitenutil.DebugPrint(screen, txt)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 320, 240
+	return 640, 360
 }
 
 func (g *Game) GetScene() *Scene {
 	return g.currentScene
+}
+
+func (g *Game) GetEntitiesByTag(tag string) []Entity {
+	return (*g.GetScene()).GetEntitiesByTag(tag)
 }
